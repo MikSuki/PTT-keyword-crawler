@@ -5,12 +5,16 @@ const fs = require('fs')
 
 const j = request.jar()
 const cookie = request.cookie('over18 = 1')
-var url = 'https://www.ptt.cc/bbs/Gossiping/index.html'
-j.setCookie(cookie, url)
+var url =
+    ['https://www.ptt.cc/bbs/Gossiping/index.html',
+        'https://www.ptt.cc/bbs/Marginalman/index.html']
+var index = 0
+
+j.setCookie(cookie, url[index])
 
 const txtFile = "data.txt"
 var first_use = false
-var time = 10
+var time = 5
 var keyword = "問卦"
 var end_time, art_time
 
@@ -21,7 +25,6 @@ read_data()
 save_time()
 
 search_start()
-
 
 
 function read_data() {
@@ -51,7 +54,7 @@ function read_data() {
 
 
 function save_time() {
-    request({ url: url, jar: j }, (err, res, body) => {
+    request({ url: url[index], jar: j }, (err, res, body) => {
 
         var $ = cheerio.load(body)
         var over = false
@@ -98,9 +101,25 @@ function save_time() {
 }
 
 
+function search_start() {
+
+    var p = new Promise((p_res, p_rej) => {
+        p_res()
+    })
+
+    p
+        .then(() => get_time())
+        //          if over throw error
+        .then(() => search_keyword())
+        //          again
+        .then(() => search_start())
+        .catch(() => {console.log(index + '   over~')})
+}
+
+
 function get_time() {
-    return new Promise(r =>
-        request({ url: url, jar: j }, (err, res, body) => {
+    return new Promise((p_res, p_rej) =>
+        request({ url: url[index], jar: j }, (err, res, body) => {
 
             var $ = cheerio.load(body)
 
@@ -125,9 +144,9 @@ function get_time() {
                         if (text.search(reg) != -1) {
 
                             art_time = convert_time(text)
-                            compare_time()
+                            compare_time(p_rej)
                             // next func
-                            r()
+                            p_res()
                         }
                     })
                 })
@@ -137,26 +156,12 @@ function get_time() {
 }
 
 
-function search_start() {
-
-    var p = new Promise((r) => {
-        r()
-    })
-
-    p
-        .then(() => get_time())
-        //          if over throw error
-        .then(() => search_keyword())
-        //          again
-        .then(() => search_start())
-        .catch(() => { })
-}
 
 
 function search_keyword() {
 
-    return new Promise(r =>
-        request({ url: url, jar: j }, (err, res, body) => {
+    return new Promise((p_res, p_rej) =>
+        request({ url: url[index], jar: j }, (err, res, body) => {
 
             var $ = cheerio.load(body)
 
@@ -165,7 +170,7 @@ function search_keyword() {
                 var text = $(this).text()
 
                 if (text === '‹ 上頁')
-                    url = 'https://www.ptt.cc' + $(this).attr('href')
+                    url[index] = 'https://www.ptt.cc' + $(this).attr('href')
             })
 
             $('#main-container .r-ent .title').each(function (i, elem) {
@@ -178,12 +183,14 @@ function search_keyword() {
                     console.log(text)
 
                     if (--time <= 0) {
-                        throw ('search time over')
+                        console.log(time)
+                        p_rej(new Error("search time over"))
                     }
                 }
             })
+            console.log('next')
             // next func
-            r();
+            p_res();
 
         }))
 }
@@ -237,7 +244,7 @@ function convert_time(str) {
 }
 
 
-function compare_time() {
+function compare_time(p_rej) {
 
     var flag = false
     if (first_use) return
@@ -265,5 +272,5 @@ function compare_time() {
         }
     }
 
-    if (flag) throw ('last time over')
+    if (flag) p_rej(new Error("last time over"))
 }
