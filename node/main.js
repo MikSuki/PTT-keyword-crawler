@@ -10,8 +10,7 @@ var url =
     ['https://www.ptt.cc/bbs/Gossiping/index.html',
         'https://www.ptt.cc/bbs/Marginalman/index.html']
 
-j.setCookie(cookie, url[index])
-j.setCookie(cookie, url[index])
+j.setCookie(cookie, url[0])
 
 
 const txtFile = "data.txt"
@@ -38,7 +37,7 @@ function process() {
 
 function read_data() {
 
-    if (! fs.existsSync(txtFile)) {
+    if (!fs.existsSync(txtFile)) {
 
         fs.appendFile(txtFile, '', function (err2) {
             if (err2) throw err2;
@@ -48,8 +47,8 @@ function read_data() {
         console.log('\nwelcome :) \n')
         console.log('----------------------------')
     }
-    else{
-        
+    else {
+
         var inputStream = fs.createReadStream(txtFile);
         var lineReader = readline.createInterface({ input: inputStream });
 
@@ -121,18 +120,12 @@ function search_start() {
     var p = new Promise((p_res, p_rej) => {
         p_res()
     })
-
-<<<<<<< HEAD:node/main.js
-
-=======
->>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
     p
         .then(() => get_time())
         //          if over throw error
         .then(() => search_keyword())
         //          again
         .then(() => search_start())
-<<<<<<< HEAD:node/main.js
         .catch(() => {
             // next board
             if (++index <= (url.length - 1)) {
@@ -142,26 +135,20 @@ function search_start() {
             else
                 console.log('\nover~~~')
         })
-=======
-        .catch(() => {console.log(index + '   over~')})
->>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
+        .catch(() => { console.log(index + '   over~') })
 }
 
 
 function get_time() {
-<<<<<<< HEAD:node/main.js
-=======
-    return new Promise((p_res, p_rej) =>
-        request({ url: url[index], jar: j }, (err, res, body) => {
->>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
 
     return new Promise((p_res, p_rej) =>
         request({ url: url[index], jar: j }, (err, res, body) => {
-            
+
             var $ = cheerio.load(body)
 
-            $('div .r-ent .title').each(function (i, elem) {
 
+            $('div .r-ent .title').each(function (i, elem) {
+                
                 if (i >= 1) return
 
                 var text = $(this).text()
@@ -192,12 +179,7 @@ function get_time() {
 
 
 
-
 function search_keyword() {
-<<<<<<< HEAD:node/main.js
-=======
-
->>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
     return new Promise((p_res, p_rej) =>
         request({ url: url[index], jar: j }, (err, res, body) => {
 
@@ -220,18 +202,10 @@ function search_keyword() {
                     text = text.trim()
                     console.log(text)
 
-<<<<<<< HEAD:node/main.js
                     if (--time <= 0)
                         p_rej(new Error("search time over"))
-=======
-                    if (--time <= 0) {
-                        console.log(time)
-                        p_rej(new Error("search time over"))
-                    }
->>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
                 }
             })
-            console.log('next')
             // next func
             p_res();
 
@@ -244,7 +218,7 @@ function convert_time(str) {
     var gap = 0
     str = str.split(" ")
     // date >= 10 ?
-    if(str[2] == '')
+    if (str[2] == '')
         gap = 1
     var t = str[3 + gap].split(":")
 
@@ -257,7 +231,7 @@ function convert_time(str) {
         sec: parseInt(t[2])
     }
 
-    
+
 
     function get_month() {
 
@@ -322,8 +296,4 @@ function compare_time(p_rej) {
     }
 
     if (flag) p_rej(new Error("last time over"))
-<<<<<<< HEAD:node/main.js
 }
-=======
-}
->>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
