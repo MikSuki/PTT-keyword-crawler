@@ -9,13 +9,15 @@ const cookie = request.cookie('over18 = 1')
 var url =
     ['https://www.ptt.cc/bbs/Gossiping/index.html',
         'https://www.ptt.cc/bbs/Marginalman/index.html']
-var index = 0
 
 j.setCookie(cookie, url[index])
+j.setCookie(cookie, url[index])
+
 
 const txtFile = "data.txt"
 var board_name = ["Gossiping", "Marginalman"]
 const reg = /\w\w\w \w\w\w .\d \d\d:\d\d:\d\d \d\d\d\d/
+var index = 0
 const search_time = 1
 var time = 1
 var keyword = "初音"
@@ -33,7 +35,6 @@ function process() {
     save_time()
     search_start()
 }
-
 
 function read_data() {
 
@@ -121,13 +122,17 @@ function search_start() {
         p_res()
     })
 
+<<<<<<< HEAD:node/main.js
 
+=======
+>>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
     p
         .then(() => get_time())
         //          if over throw error
         .then(() => search_keyword())
         //          again
         .then(() => search_start())
+<<<<<<< HEAD:node/main.js
         .catch(() => {
             // next board
             if (++index <= (url.length - 1)) {
@@ -137,10 +142,18 @@ function search_start() {
             else
                 console.log('\nover~~~')
         })
+=======
+        .catch(() => {console.log(index + '   over~')})
+>>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
 }
 
 
 function get_time() {
+<<<<<<< HEAD:node/main.js
+=======
+    return new Promise((p_res, p_rej) =>
+        request({ url: url[index], jar: j }, (err, res, body) => {
+>>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
 
     return new Promise((p_res, p_rej) =>
         request({ url: url[index], jar: j }, (err, res, body) => {
@@ -181,6 +194,10 @@ function get_time() {
 
 
 function search_keyword() {
+<<<<<<< HEAD:node/main.js
+=======
+
+>>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
     return new Promise((p_res, p_rej) =>
         request({ url: url[index], jar: j }, (err, res, body) => {
 
@@ -203,10 +220,18 @@ function search_keyword() {
                     text = text.trim()
                     console.log(text)
 
+<<<<<<< HEAD:node/main.js
                     if (--time <= 0)
                         p_rej(new Error("search time over"))
+=======
+                    if (--time <= 0) {
+                        console.log(time)
+                        p_rej(new Error("search time over"))
+                    }
+>>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
                 }
             })
+            console.log('next')
             // next func
             p_res();
 
@@ -297,4 +322,8 @@ function compare_time(p_rej) {
     }
 
     if (flag) p_rej(new Error("last time over"))
+<<<<<<< HEAD:node/main.js
 }
+=======
+}
+>>>>>>> 837fcdcfbfadda6e2bf5ba0658efea05c041ee4a:main.js
