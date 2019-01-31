@@ -1,0 +1,14 @@
+{
+    "maven.view": "flat",
+    
+    "maven.terminal.customEnv": [
+        {
+            "environmentVariable": "MAVEN_OPTS",               // variable name
+            "value": "-Xms1024m -Xmx4096m"                     // value
+        },
+        {
+            "environmentVariable": "JAVA_HOME",                // variable name
+            "value": "D:\\java\\jdk-11.02"      // value
+        }
+    ]
+}
