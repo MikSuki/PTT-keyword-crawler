@@ -13,18 +13,21 @@ var url =
 j.setCookie(cookie, url[0])
 
 
-const txtFile = "data.txt"
+const dataFile = "data.txt"
+const settingFile = "setting.txt"
+
 var board_name = ["Gossiping", "Marginalman"]
 const reg = /\w\w\w \w\w\w .\d \d\d:\d\d:\d\d \d\d\d\d/
 var index = 0
-const search_time = 1
-var time = 1
-var keyword = "初音"
+const default_search_time = 1
+const default_keyword = "初音"
+var search_time = 1, time = 1
+var keyword = []
 var no_data = true
 var end_time = [], art_time
 
 
-read_data()
+read_file()
 process()
 
 
@@ -35,11 +38,42 @@ function process() {
     search_start()
 }
 
-function read_data() {
+function read_file() {
 
-    if (!fs.existsSync(txtFile)) {
+    // setting
+    if (!fs.existsSync(settingFile)) {
 
-        fs.appendFile(txtFile, '', function (err2) {
+        fs.appendFile(settingFile, 'search_time: ' + default_search_time + '\nkeyword: ' + default_keyword, function (err2) {
+            if (err2) throw err2;
+            search_time = parseInt(default_search_time)
+            time = search_time
+            keyword.push("default_keyword")
+        });
+    }
+    else {
+
+        var inputStream = fs.createReadStream(settingFile);
+        var lineReader = readline.createInterface({ input: inputStream });
+
+        lineReader.on('line', function (line) {
+            line = line.split(" ")
+            switch(line[0]){
+                case "search_time:":
+                    search_time = parseInt(line[1])
+                    time = search_time
+                    break
+                case "keyword:":
+                    for(var i = 1; i < line.length; ++i)
+                        keyword.push(line[i])
+                    break
+            }
+        });
+    }
+
+    // data
+    if (!fs.existsSync(dataFile)) {
+
+        fs.appendFile(dataFile, '', function (err2) {
             if (err2) throw err2;
         });
         console.log('----------------------------')
@@ -49,10 +83,10 @@ function read_data() {
     }
     else {
 
-        var inputStream = fs.createReadStream(txtFile);
-        var lineReader = readline.createInterface({ input: inputStream });
+        var inputStream2 = fs.createReadStream(dataFile);
+        var lineReader2 = readline.createInterface({ input: inputStream2 });
 
-        lineReader.on('line', function (line) {
+        lineReader2.on('line', function (line) {
             if (line.search(reg) != -1) {
                 no_data = false
                 end_time.push(convert_time(line))
@@ -97,12 +131,12 @@ function save_time() {
                         if (text.search(reg) != -1) {
 
                             if (index != 0) {
-                                fs.appendFile(txtFile, '\n' + text, function (err2) {
+                                fs.appendFile(dataFile, '\n' + text, function (err2) {
                                     if (err2) throw err2
                                 })
                             }
                             else {
-                                fs.writeFile(txtFile, text, function (err2) {
+                                fs.writeFile(dataFile, text, function (err2) {
                                     if (err2) throw err2
                                 })
                             }
@@ -135,7 +169,6 @@ function search_start() {
             else
                 console.log('\nover~~~')
         })
-        .catch(() => { console.log(index + '   over~') })
 }
 
 
@@ -148,7 +181,7 @@ function get_time() {
 
 
             $('div .r-ent .title').each(function (i, elem) {
-                
+
                 if (i >= 1) return
 
                 var text = $(this).text()
@@ -225,7 +258,7 @@ function convert_time(str) {
     return {
         year: parseInt(str[4 + gap]),
         month: get_month(),
-        date: parseInt(str[2]),
+        date: parseInt(str[2 + gap]),
         hour: parseInt(t[0]),
         min: parseInt(t[1]),
         sec: parseInt(t[2])
