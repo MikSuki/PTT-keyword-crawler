@@ -8,6 +8,7 @@ const j = request.jar()
 const cookie = request.cookie('over18 = 1')
 var url =
     ['https://www.ptt.cc/bbs/Gossiping/index.html',
+        'https://www.ptt.cc/bbs/WomenTalk/index.html',
         'https://www.ptt.cc/bbs/Marginalman/index.html']
 
 j.setCookie(cookie, url[0])
@@ -16,27 +17,24 @@ j.setCookie(cookie, url[0])
 const dataFile = "data.txt"
 const settingFile = "setting.txt"
 
-var board_name = ["Gossiping", "Marginalman"]
+var board_name = ["Gossiping", "WomenTalk", "Marginalman"]
+var board_i = []
 const reg = /\w\w\w \w\w\w .\d \d\d:\d\d:\d\d \d\d\d\d/
 var index = 0
 const default_search_time = 1
 const default_keyword = "初音"
+const default_board_i = 0
 var search_time = 1, time = 1
 var keyword = []
 var no_data = true
 var end_time = [], art_time
+var get_time_over = false
 
 
 read_file()
 process()
 
 
-function process() {
-
-    console.log('----- ' + board_name[index] + ' -----')
-    save_time()
-    search_start()
-}
 
 function read_file() {
 
@@ -45,9 +43,10 @@ function read_file() {
 
         fs.appendFile(settingFile, 'search_time: ' + default_search_time + '\nkeyword: ' + default_keyword, function (err2) {
             if (err2) throw err2;
-            search_time = parseInt(default_search_time)
+            search_time = default_search_time
             time = search_time
-            keyword.push("default_keyword")
+            keyword.push(default_keyword)
+            board_i.push(default_board_i)
         });
     }
     else {
@@ -57,14 +56,17 @@ function read_file() {
 
         lineReader.on('line', function (line) {
             line = line.split(" ")
-            switch(line[0]){
+            switch (line[0]) {
                 case "search_time:":
                     search_time = parseInt(line[1])
                     time = search_time
                     break
                 case "keyword:":
-                    for(var i = 1; i < line.length; ++i)
+                    for (var i = 1; i < line.length; ++i)
                         keyword.push(line[i])
+                    break
+                case "board:":
+                    board_i = line[1].split("")
                     break
             }
         });
@@ -93,6 +95,14 @@ function read_file() {
             }
         });
     }
+}
+
+
+function process() {
+
+    console.log('----- ' + board_name[index] + ' -----')
+    save_time()
+    search_start()
 }
 
 
@@ -150,7 +160,6 @@ function save_time() {
 
 
 function search_start() {
-
     var p = new Promise((p_res, p_rej) => {
         p_res()
     })
@@ -162,7 +171,7 @@ function search_start() {
         .then(() => search_start())
         .catch(() => {
             // next board
-            if (++index <= (url.length - 1)) {
+            if (++index <= (board_i.length - 1)) {
                 time = search_time
                 process()
             }
@@ -174,40 +183,67 @@ function search_start() {
 
 function get_time() {
 
+    var url_i = 0;
+    var url_arr = []
+
+    get_time_over = false
+
     return new Promise((p_res, p_rej) =>
         request({ url: url[index], jar: j }, (err, res, body) => {
 
             var $ = cheerio.load(body)
+            var p = Promise.resolve();
 
+            p = p.then(function () {
 
-            $('div .r-ent .title').each(function (i, elem) {
+                $('div .r-ent .title').each(function (i, elem) {
 
-                if (i >= 1) return
+                    var text = $(this).text()
+                    text = text.trim()
 
-                var text = $(this).text()
-                text = text.trim()
+                    try {
+                        url_arr.push('https://www.ptt.cc' + elem.children[1].attribs.href)
+                    } catch (error) {
 
-                var this_url = 'https://www.ptt.cc' + $('.title a[href]').attr('href')
-
-                request({ url: this_url, jar: j }, (err, res, body) => {
-                    $ = cheerio.load(body)
-
-                    $('#main-content .article-metaline .article-meta-value').each(function (i, elem) {
-
-                        var text = $(this).text()
-                        text = text.trim()
-                        if (text.search(reg) != -1) {
-
-                            art_time = convert_time(text)
-                            compare_time(p_rej)
-                            // next func
-                            p_res()
-                        }
-                    })
+                    }
                 })
-            })
+            });
+
+            p.then(function () {
+                search_one_of_urls(p_res, p_rej)
+            });
         })
     )
+
+    function search_one_of_urls(p_res, p_rej) {
+        request({ url: url_arr[url_i], jar: j }, (err, res, body) => {
+
+            $ = cheerio.load(body)
+            var p = Promise.resolve();
+
+            p = p.then(function () {
+                $('#main-content .article-metaline .article-meta-value').each(function (i, elem) {
+                    var text = $(this).text()
+                    text = text.trim()
+                    if (text.search(reg) != -1) {
+
+                        get_time_over = true
+                        art_time = convert_time(text)
+                        compare_time(p_rej)
+                        // next func
+                        p_res()
+                    }
+                })
+            })
+
+            p.then(function () {
+                if (!get_time_over) {
+                    ++url_i
+                    search_one_of_urls(p_res, p_rej)
+                }
+            });
+        })
+    }
 }
 
 
@@ -229,7 +265,6 @@ function search_keyword() {
             $('#main-container .r-ent .title').each(function (i, elem) {
 
                 var text = $(this).text()
-
                 if (text.search(keyword) != -1) {
 
                     text = text.trim()
@@ -330,3 +365,4 @@ function compare_time(p_rej) {
 
     if (flag) p_rej(new Error("last time over"))
 }
+
