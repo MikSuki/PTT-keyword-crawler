@@ -1,5 +1,6 @@
-package tw.miksuki.auto_run_cmd;
+package tw.miksuki;
 
+import java.util.Vector;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -10,7 +11,7 @@ public class App implements ActionListener {
 
     String settingFile = "node\\setting.txt";
     String dataFile = "node\\data.txt";
-    String[] settingWord = { "∑j¥M¶∏º∆", "√ˆ¡‰¶r" };
+    String[] settingWord = { "ÊêúÂ∞ãÊ¨°Êï∏", "ÈóúÈçµÂ≠ó" };
     Dimension screenSize = null;
     int appWidth, appHeight, setWidth, setHeight;
     JFrame jframe = null, setframe = null;
@@ -18,13 +19,15 @@ public class App implements ActionListener {
     Container container = null, setcontainer = null;
     JButton start_btn, set_btn = null, add_btn = null, save_btn = null, del_btn = null;
     JLabel jlabel1 = null, jlabel2 = null;
+    Vector<JCheckBox> chk_vec;
+    JCheckBox chk_Gossip = null, chk_Woman = null, chk_Margin = null;
     JTextArea mainTextArea = null, setTextArea1 = null, setTextArea2 = null;
     JScrollPane scrollPane = null;
     DefaultCaret caret = null;
 
     Thread thread = null;
     int sleept = 1000;
-    
+
     Boolean start = false;
 
     public static void main(String[] args) {
@@ -51,18 +54,24 @@ public class App implements ActionListener {
         // -----------------------------
         // main window
         // -----------------------------
+
+        // jframe
         jframe = new JFrame("PTT-Keyword-Crawler");
         jframe.setIconImage(jframe.getToolkit().getImage("test.jpg"));
 
+        // jpanel
         jpanel = new JPanel();
         jpanel.setLayout(null);
 
+        // container
         container = jframe.getContentPane();
         jframe.setLayout(null);
         container.add(jpanel);
 
-        start_btn = new JButton("∂}©l");
-        set_btn = new JButton("≥]©w");
+        // button
+        start_btn = new JButton("ÈñãÂßã");
+        set_btn = new JButton("Ë®≠ÂÆö");
+
         start_btn.setBounds((int) (appWidth * 0.7), (int) (appHeight * 0.25), (int) (appWidth * 0.2),
                 (int) (appHeight * 0.05));
         set_btn.setBounds((int) (appWidth * 0.7), (int) (appHeight * 0.6), (int) (appWidth * 0.2),
@@ -73,6 +82,10 @@ public class App implements ActionListener {
         set_btn.setActionCommand("setting");
         set_btn.addActionListener(this);
 
+        jpanel.add(start_btn);
+        jpanel.add(set_btn);
+
+        // textarea
         mainTextArea = new JTextArea();
         scrollPane = new JScrollPane(mainTextArea);
         mainTextArea.setBounds((int) (appWidth * 0.05), (int) (appHeight * 0.05), (int) (appWidth * 0.6),
@@ -84,8 +97,6 @@ public class App implements ActionListener {
         DefaultCaret caret = (DefaultCaret) mainTextArea.getCaret();
         caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 
-        jpanel.add(start_btn);
-        jpanel.add(set_btn);
         jpanel.add(scrollPane);
 
         jframe.setSize(appWidth, appHeight);
@@ -108,43 +119,70 @@ public class App implements ActionListener {
         setframe.setLayout(null);
         container.add(setpanel);
 
+        // lael
         jlabel1 = new JLabel();
         jlabel2 = new JLabel();
+
         jlabel1.setBounds((int) (setWidth * 0.05), (int) (setHeight * 0.1), 80, 20);
-        jlabel2.setBounds((int) (setWidth * 0.05), (int) (setHeight * 0.3), 80, 20);
+        jlabel2.setBounds((int) (setWidth * 0.05), (int) (setHeight * 0.2), 80, 20);
+
         jlabel1.setText(settingWord[0] + " : ");
         jlabel2.setText(settingWord[1] + " : ");
+
         setpanel.add(jlabel1);
         setpanel.add(jlabel2);
 
+        // textarea
         setTextArea1 = new JTextArea();
         setTextArea2 = new JTextArea();
+
         setTextArea1.setBounds((int) (setWidth * 0.25), (int) (setHeight * 0.1), 80, 20);
-        setTextArea2.setBounds((int) (setWidth * 0.25), (int) (setHeight * 0.3), 80, 20);
+        setTextArea2.setBounds((int) (setWidth * 0.25), (int) (setHeight * 0.2), 80, 20);
+
         setpanel.add(setTextArea1);
         setpanel.add(setTextArea2);
 
-        add_btn = new JButton("∑sºW√ˆ¡‰¶r");
-        save_btn = new JButton("´O¶s");
-        del_btn = new JButton("ßR∞£¨ˆø˝");
-        add_btn.setBounds((int) (setWidth * 0.55), (int) (setHeight * 0.3), 120, 20);
+        // button
+        add_btn = new JButton("Êñ∞Â¢ûÈóúÈçµÂ≠ó");
+        save_btn = new JButton("‰øùÂ≠ò");
+        del_btn = new JButton("Âà™Èô§Á¥ÄÈåÑ");
+
+        add_btn.setBounds((int) (setWidth * 0.55), (int) (setHeight * 0.2), 120, 20);
         save_btn.setBounds((int) (setWidth * 0.6 - 80), (int) (setHeight * 0.55), 100, 20);
         del_btn.setBounds((int) (setWidth * 0.6 - 80), (int) (setHeight * 0.7), 100, 20);
+
         add_btn.setActionCommand("add");
         add_btn.addActionListener(this);
         save_btn.setActionCommand("save");
         save_btn.addActionListener(this);
         del_btn.setActionCommand("del");
         del_btn.addActionListener(this);
+
         setpanel.add(add_btn);
         setpanel.add(save_btn);
         setpanel.add(del_btn);
+
+        chk_Gossip = new JCheckBox("ÂÖ´Âç¶Êùø");
+        chk_Woman = new JCheckBox("Â•≥Êùø");
+        chk_Margin = new JCheckBox("ÈÇäÁ∑£Êùø");
+
+        chk_Gossip.setBounds((int) (setWidth * 0.15), (int) (setHeight * 0.35), 75, 25);
+        chk_Woman.setBounds((int) (setWidth * 0.365), (int) (setHeight * 0.35), 60, 25);
+        chk_Margin.setBounds((int) (setWidth * 0.55), (int) (setHeight * 0.35), 75, 25);
+
+        chk_vec = new Vector<JCheckBox>();
+        chk_vec.add(chk_Gossip);
+        chk_vec.add(chk_Woman);
+        chk_vec.add(chk_Margin);
+
+        setpanel.add(chk_Gossip);
+        setpanel.add(chk_Woman);
+        setpanel.add(chk_Margin);
 
         setframe.setSize(setWidth, setHeight);
         setpanel.setSize(setWidth, setHeight);
 
         setframe.setLocationRelativeTo(null);
-
     }
 
     public void search() {
@@ -177,8 +215,11 @@ public class App implements ActionListener {
             setframe.setVisible(true);
         } else if (cmd == "save") {
             save_setting();
+            del_history();
+            mainTextArea.append("‰øùÂ≠òÊàêÂäü~~~\n");
         } else if (cmd == "del") {
             del_history();
+            mainTextArea.append("Âà™Èô§Á¥ÄÈåÑÊàêÂäü~~~\n");
         }
     }
 
@@ -187,7 +228,7 @@ public class App implements ActionListener {
         start = !start;
 
         if (start) {
-            start_btn.setText("∞±§Ó");
+            start_btn.setText("ÂÅúÊ≠¢");
 
             thread = new Thread(new Runnable() {
                 public void run() {
@@ -205,7 +246,7 @@ public class App implements ActionListener {
             });
             thread.start();
         } else {
-            start_btn.setText("∂}©l");
+            start_btn.setText("ÈñãÂßã");
         }
     }
 
@@ -228,6 +269,20 @@ public class App implements ActionListener {
                     setTextArea1.setText(parts[1]);
                 else if (parts[0].equals("keyword:"))
                     setTextArea2.setText(parts[1]);
+                else if (parts[0].equals("board:")) {
+
+                    if (parts.length > 1) {
+                        String[] tokens = parts[1].split("");
+                        for (String token : tokens) {
+                            try {
+                                chk_vec.get(Integer.parseInt(token)).setSelected(true);
+                            } catch (NumberFormatException e) {
+                                System.out.println("setting: \n board_select error!");
+                            }
+
+                        }
+                    }
+                }
             }
 
         } catch (IOException e) {
@@ -238,7 +293,17 @@ public class App implements ActionListener {
     }
 
     public void save_setting() {
-        String text = "search_time: " + setTextArea1.getText() + "\nkeyword: " + setTextArea2.getText();
+        int i = 0;
+        String a;
+        String text = "\nsearch_time: " + setTextArea1.getText() + "\nkeyword: " + setTextArea2.getText() + "\nboard: ";
+
+        for (JCheckBox e : chk_vec) {
+            if (e.isSelected()) {
+                text += Integer.toString(i);
+            }
+            ++i;
+        }
+
         try {
             FileOutputStream is = new FileOutputStream(settingFile);
             OutputStreamWriter osw = new OutputStreamWriter(is);
