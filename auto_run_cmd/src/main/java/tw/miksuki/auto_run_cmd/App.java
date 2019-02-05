@@ -1,4 +1,4 @@
-package tw.miksuki;
+package tw.miksuki.auto_run_cmd;
 
 import java.util.Vector;
 import java.awt.*;
