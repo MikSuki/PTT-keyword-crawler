@@ -6,6 +6,7 @@ const readline = require('readline');
 
 const j = request.jar()
 const cookie = request.cookie('over18 = 1')
+const url_host = 'https://www.ptt.cc'
 var url =
     ['https://www.ptt.cc/bbs/Gossiping/index.html',
         'https://www.ptt.cc/bbs/WomenTalk/index.html',
@@ -19,6 +20,7 @@ const settingFile = "setting.txt"
 
 var board_name = ["Gossiping", "WomenTalk", "Marginalman"]
 var board_i = []
+var search_board_time = 0
 const reg = /\w\w\w \w\w\w .\d \d\d:\d\d:\d\d \d\d\d\d/
 var index = 0
 const default_search_time = 1
@@ -28,10 +30,25 @@ var search_time = 1, time = 1
 var keyword = []
 var no_data = true
 var end_time = [], art_time
-var get_time_over = false
+
+
+var id
+var password
+var content
+var push_mode
+
+var title_arr = []
+var author_arr = []
+var found_each_board = [0, 0, 0]
+
+// flag
+var found = false
+var this_board_over = false
+var leave_comment = false
 
 
 read_file()
+
 process()
 
 
@@ -40,8 +57,8 @@ function read_file() {
 
     // setting
     if (!fs.existsSync(settingFile)) {
-
-        fs.appendFile(settingFile, 'search_time: ' + default_search_time + '\nkeyword: ' + default_keyword, function (err2) {
+        var str = 'search_time: ' + default_search_time + '\nkeyword: ' + default_keyword + '\nboard: ' + default_board_i + '\nleave_comment: false\nid: \npassword: \npush_mode: 2\ncontent: test'
+        fs.appendFile(settingFile, str, function (err2) {
             if (err2) throw err2;
             search_time = default_search_time
             time = search_time
@@ -67,6 +84,22 @@ function read_file() {
                     break
                 case "board:":
                     board_i = line[1].split("")
+                    break
+                case 'leave_comment:':
+                    if (line[1] == 'true')
+                        leave_comment = true
+                    break
+                case 'id:':
+                    id = line[1]
+                    break
+                case 'password:':
+                    password = line[1]
+                    break
+                case 'push_mode:':
+                    push_mode = line[1]
+                    break
+                case 'content:':
+                    content = line[1]
                     break
             }
         });
@@ -99,6 +132,8 @@ function read_file() {
 
 
 function process() {
+
+    this_board_over = false
 
     console.log('----- ' + board_name[index] + ' -----')
     save_time()
@@ -160,124 +195,174 @@ function save_time() {
 
 
 function search_start() {
-    var p = new Promise((p_res, p_rej) => {
-        p_res()
+
+    var p = new Promise((resolve) => {
+        resolve()
     })
     p
-        .then(() => get_time())
-        //          if over throw error
-        .then(() => search_keyword())
-        //          again
-        .then(() => search_start())
+        .then(() => search_one_page())
+        .then((temp) => handle_temp(temp))
         .catch(() => {
-            // next board
-            if (++index <= (board_i.length - 1)) {
-                time = search_time
-                process()
+            if (!this_board_over)
+                search_start()
+            else {
+                // next board
+                if (++search_board_time < board_i.length) {
+                    index = board_i[search_board_time]
+                    time = search_time
+                    process()
+                }
+                else {
+                    console.log(title_arr)
+                    console.log(author_arr)
+                    console.log(found_each_board)
+                    console.log('\nsearch over~~~')
+                    console.log('\commend start~~~')
+
+                    if (found && leave_comment)
+                        comment()
+                }
             }
-            else
-                console.log('\nover~~~')
+
+
         })
 }
 
+function search_one_page() {
 
-function get_time() {
-
-    var url_i = 0;
-    var url_arr = []
-
-    get_time_over = false
-
-    return new Promise((p_res, p_rej) =>
+    return new Promise((resolve, reject) =>
         request({ url: url[index], jar: j }, (err, res, body) => {
 
             var $ = cheerio.load(body)
+            var temp = []
             var p = Promise.resolve();
 
-            p = p.then(function () {
+            // -----------------------------------
+            //          get last page url
+            // -----------------------------------
 
-                $('div .r-ent .title').each(function (i, elem) {
+            p = p.then(() => {
+                $('#main-container .action-bar .btn').each(function (i, elem) {
 
                     var text = $(this).text()
-                    text = text.trim()
 
-                    try {
-                        url_arr.push('https://www.ptt.cc' + elem.children[1].attribs.href)
-                    } catch (error) {
+                    if (text === '‹ 上頁')
+                        url[index] = url_host + $(this).attr('href')
+                })
+            })
 
+            // -----------------------------------
+            //     search this page keywords
+            // -----------------------------------
+
+            p.then(() => {
+                $('#main-container .r-ent').each(function (i, elem) {
+
+                    var text = $(this).text()
+
+                    if (text.search(keyword) != -1) {
+
+                        var title = $(this)['0'].children[3].children[1].children[0].data
+                        var author = $(this)['0'].children[5].children[1].children[0].data
+                        var a_url = $(this)['0'].children[3].children[1].attribs.href
+
+                        temp.push({
+                            'title': title.trim(),
+                            'author': author.trim(),
+                            'url': a_url.trim()
+                        })
                     }
                 })
-            });
+            })
 
-            p.then(function () {
-                search_one_of_urls(p_res, p_rej)
-            });
-        })
-    )
+            p.then(() => {
+                if (time <= temp.length) {
 
-    function search_one_of_urls(p_res, p_rej) {
-        request({ url: url_arr[url_i], jar: j }, (err, res, body) => {
+                    var gap = temp.length - time
+                    temp.splice(0, gap)
+                }
+                if (temp.length == 0)
+                    reject()
+
+                resolve(temp)
+            })
+        }))
+}
+
+
+function handle_temp(temp) {
+
+    var i = temp.length - 1
+    var time_up = false
+
+    return new Promise((resolve, reject) => {
+        search_one_of_urls(resolve, reject)
+    })
+
+    function search_one_of_urls(resolve, reject) {
+
+        var url = url_host + temp[i].url
+
+        request({ url: url, jar: j }, (err, res, body) => {
 
             $ = cheerio.load(body)
             var p = Promise.resolve();
 
-            p = p.then(function () {
-                $('#main-content .article-metaline .article-meta-value').each(function (i, elem) {
+            // -----------------------------------
+            //      check this article's time
+            // -----------------------------------
+
+            p = p.then(() => {
+                $('#main-content .article-metaline .article-meta-value').each(function (j, elem) {
                     var text = $(this).text()
                     text = text.trim()
                     if (text.search(reg) != -1) {
 
-                        get_time_over = true
                         art_time = convert_time(text)
-                        compare_time(p_rej)
-                        // next func
-                        p_res()
+                        if (compare_time())
+                            time_up = true
+                        else
+                            console.log(temp[i].title)
                     }
                 })
             })
 
-            p.then(function () {
-                if (!get_time_over) {
-                    ++url_i
-                    search_one_of_urls(p_res, p_rej)
+            // -------------------------------------------
+            //     decide to check next article's time 
+            //     ,or return reject() of this promise
+            // -------------------------------------------
+
+            p.then(() => {
+
+                if (--i >= 0 && !time_up)
+                    search_one_of_urls(resolve, reject)
+                else {
+
+                    if (time <= temp.length || time_up) {
+
+                        this_board_over = true
+
+                        // where temp's article time up
+                        var pos = (i == -1) ? (i + 1) : (i + 2)
+                        temp.splice(0, pos)
+                    }
+                    else {
+                        time -= temp.length
+                    }
+
+                    for (i = 0; i < temp.length; ++i) {
+
+                        title_arr.push(temp[i].title)
+                        author_arr.push(temp[i].author)
+                        ++found_each_board[index]
+                        found = true
+                    }
+
+                    reject()
                 }
-            });
+            })
         })
     }
-}
-
-
-
-function search_keyword() {
-    return new Promise((p_res, p_rej) =>
-        request({ url: url[index], jar: j }, (err, res, body) => {
-
-            var $ = cheerio.load(body)
-
-            $('#main-container .action-bar .btn').each(function (i, elem) {
-
-                var text = $(this).text()
-
-                if (text === '‹ 上頁')
-                    url[index] = 'https://www.ptt.cc' + $(this).attr('href')
-            })
-
-            $('#main-container .r-ent .title').each(function (i, elem) {
-
-                var text = $(this).text()
-                if (text.search(keyword) != -1) {
-
-                    text = text.trim()
-                    console.log(text)
-
-                    if (--time <= 0)
-                        p_rej(new Error("search time over"))
-                }
-            })
-            // next func
-            p_res();
-
-        }))
 }
 
 
@@ -335,7 +420,7 @@ function convert_time(str) {
 }
 
 
-function compare_time(p_rej) {
+function compare_time() {
 
     var flag = false
     if (no_data) return
@@ -363,6 +448,207 @@ function compare_time(p_rej) {
         }
     }
 
-    if (flag) p_rej(new Error("last time over"))
+    if (flag) return true
+    else return false
+    //reject(new Error("last time over"))
+}
+
+
+function comment() {
+    const Client = require('ssh2').Client;
+    const conn = new Client();
+    var s, d
+
+    var i = 0
+
+    // flag
+    var start = false
+    var isLogin = false
+    var isComment = false
+
+    conn.on('ready', function () {
+        console.log('Client :: ready');
+
+        conn.shell(function (err, stream) {
+            if (err) throw err;
+
+            stream.on('close', function (code, signal) {
+                console.log('Stream :: close :: code: ' + code + ', signal: ' + signal);
+                conn.end();
+            }).on('data', function (data) {
+                s = stream
+                d = data
+                console.log('STDOUT: ' + data);
+
+                if (!start)
+                    connect()
+
+            }).stderr.on('data', function (data) {
+                console.log('STDERR: ' + data);
+            });
+        });
+    }).connect({
+        host: '140.112.172.11',
+        port: 22,
+        username: 'bbsu',
+        password: ''
+    });
+
+    // init
+    (() => {
+        console.log('\n\n\n\n\n\n\n\n------init-------')
+        search_board_time = 0
+        index = board_i[search_board_time]
+    })()
+
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms))
+    }
+
+    async function connect() {
+        start = true
+        if (d.includes('系統過載')) {
+            console.log('系統過載, 等等再來吧QQ')
+            process.exit()
+        }
+        await sleep(2000)
+        login()
+    }
+
+
+    async function login() {
+
+        console.log('login...');
+        s.write(id + '\r\n')
+        s.write(password + '\r\n')
+        await sleep(2000)
+        handleLoginProblem()
+    }
+
+    async function handleLoginProblem() {
+
+        if (d.includes('這裡沒有這個人啦')) {
+            console.log('帳密錯誤...')
+            console.log('88888')
+            process.exit()
+        }
+
+        if (d.includes('您想刪除其他重複登入')) {
+            console.log('\n\n\n\n\n\n\n\n\n刪除其他重複登入的連線....')
+            s.write('y\r\n')
+            await sleep(5000);
+        }
+
+        if (d.includes('系統負荷量大時會需時較久')) {
+            console.log('\n\n\n\n\n\n\n\n\n系統負荷量大，再多等一下...')
+            await sleep(5000);
+        }
+
+        if (d.includes('請勿頻繁登入以免造成系統過度負荷')) {
+            console.log('\n\n\n\n\n\n\n\n\n不要頻繁登入喔喔喔....')
+            s.write('\r\n')
+            await sleep(2000);
+        }
+
+        if (d.includes('請按任意鍵繼續')) {
+            console.log('\n\n\n\n\n\n\n\n\n按任意鍵繼續....')
+            s.write('\r\n')
+            await sleep(2000);
+        }
+
+        if (d.includes('您要刪除以上錯誤嘗試的記錄嗎')) {
+            console.log('刪除錯誤嘗試')
+            s.write('y\r\n')
+            await sleep(3000);
+        }
+
+
+        if (d.includes('您有一篇文章尚未完成')) {
+            console.log('刪除尚未完成文章')
+            s.write('q\r\n')
+            await sleep(2000);
+        }
+
+        await sleep(2000)
+        leaveComment()
+    }
+
+    async function leaveComment() {
+
+        var j = 0
+
+        if (search_board_time > 0) {
+            for (var k = 0; k < search_board_time; ++k) {
+                j += found_each_board[board_i[k]]
+            }
+            j += i
+        }
+        else {
+            j = i
+        }
+
+        console.log('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n推文中...');
+        console.log('j : ' + j)
+        console.log(board_name[index])
+        console.log(title_arr[j])
+        console.log(author_arr[j])
+        
+        // enter board
+        s.write('s')
+        await sleep(500);
+        s.write(board_name[index] + '\r\n')
+        await sleep(2000);
+        s.write('\r\n')
+
+        
+        // search author
+        s.write('a')
+        await sleep(500);
+        s.write(author_arr[j] + '\r\n')
+        await sleep(2000);
+
+        
+        // search article
+        s.write('\057')
+        await sleep(500);
+        s.write(title_arr[j] + '\r\n')
+        await sleep(2000);
+
+        /*
+        // leave comment
+        s.write('X2')
+        await sleep(500);
+        s.write(content + '\r\n')
+        await sleep(2000);
+        s.write('y\r\n')*/
+
+        console.log('-------------------')
+        console.log('推文成功!')
+        console.log('-------------------')
+
+        nextComment()
+    }
+
+
+    async function nextComment() {
+
+        console.log('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n-----------next------------')
+
+        if (++i > found_each_board[index] - 1) {
+
+            if (++search_board_time <= board_i.length - 1) {
+                i = 0
+                index = board_i[search_board_time]
+            }
+            else{
+                console.log('-----------comment over------------')
+                return false
+            }
+                
+        }
+
+        leaveComment()
+    }
 }
 
