@@ -228,6 +228,8 @@ public class App implements ActionListener {
         start = !start;
 
         if (start) {
+            mainTextArea.append(settingWord[0] + ": " + setTextArea1.getText() + "\n" + settingWord[1] + ": "
+                    + setTextArea2.getText() + "\n" + "開始~~~\n");
             start_btn.setText("停止");
 
             thread = new Thread(new Runnable() {
@@ -237,6 +239,7 @@ public class App implements ActionListener {
                             search();
                             Thread.sleep(sleept);
                         }
+                        mainTextArea.append("停止~~~\n");
                     } catch (InterruptedException e) {
                         System.out.println("thread error");
                         return;
