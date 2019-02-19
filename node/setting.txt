@@ -1,2 +1,0 @@
-search_time: 1
-keyword: 初音
