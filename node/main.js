@@ -24,7 +24,7 @@ var search_board_time = 0
 const reg = /\w\w\w \w\w\w .\d \d\d:\d\d:\d\d \d\d\d\d/
 var index = 0
 const default_search_time = 1
-const default_keyword = "初音"
+const default_keyword = "肥宅"
 const default_board_i = 0
 var search_time = 1, time = 1
 var keyword = []
